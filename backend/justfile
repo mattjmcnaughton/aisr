@@ -1,0 +1,116 @@
+# Backend - FastAPI + SQLModel
+# Run `just` to see all available commands
+
+set dotenv-load
+
+# List available commands
+default:
+    @just --list
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Development
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Start development server with hot reload
+dev:
+    uv run fastapi dev app/main.py --port 8000
+
+# Start production server
+serve:
+    uv run fastapi run app/main.py --port 8000
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Testing
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Run all tests
+test *ARGS:
+    uv run pytest {{ARGS}}
+
+# Run unit tests only
+test-unit *ARGS:
+    uv run pytest tests/unit {{ARGS}}
+
+# Run integration tests only
+test-integration *ARGS:
+    uv run pytest tests/integration {{ARGS}}
+
+# Run tests with coverage
+test-cov:
+    uv run pytest --cov=app --cov-report=term-missing
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Code Quality
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Run all linters and type checkers
+lint:
+    uv run ruff check .
+    uv run ty check
+
+# Fix auto-fixable linting issues
+fix:
+    uv run ruff check --fix .
+    uv run ruff format .
+
+# Format code
+format:
+    uv run ruff format .
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Database
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Run all pending migrations
+db-migrate *ARGS:
+    uv run alembic upgrade {{ARGS}}
+
+# Apply all migrations to head
+db-upgrade:
+    uv run alembic upgrade head
+
+# Rollback last migration
+db-downgrade:
+    uv run alembic downgrade -1
+
+# Create a new migration
+db-migration NAME:
+    uv run alembic revision --autogenerate -m "{{NAME}}"
+
+# Show migration history
+db-history:
+    uv run alembic history
+
+# Reset database (drop all and recreate)
+db-reset:
+    uv run alembic downgrade base
+    uv run alembic upgrade head
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Build & Deploy
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Build docker image
+build:
+    docker build -t aisr-backend .
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Utilities
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Install dependencies
+install:
+    uv sync
+
+# Update dependencies
+update:
+    uv lock --upgrade
+
+# Clean build artifacts
+clean:
+    rm -rf .pytest_cache .ruff_cache .coverage htmlcov __pycache__ .ty_cache
+    find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
+# Open Python shell with app context
+shell:
+    uv run python -i -c "from app.core.config import settings; print('Settings loaded')"

@@ -1,0 +1,94 @@
+# Frontend - React + TypeScript + Vite
+# Run `just` to see all available commands
+
+set dotenv-load
+
+# List available commands
+default:
+    @just --list
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Development
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Start development server
+dev:
+    npm run dev
+
+# Start development server with host exposed
+dev-host:
+    npm run dev -- --host
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Testing
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Run all tests
+test *ARGS:
+    npm test -- {{ARGS}}
+
+# Run tests in watch mode
+test-watch:
+    npm test -- --watch
+
+# Run tests with coverage
+test-cov:
+    npm test -- --coverage
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Code Quality
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Run all linters and type checkers
+lint:
+    npm run lint
+    npx tsc --noEmit
+
+# Fix auto-fixable linting issues
+fix:
+    npm run lint -- --fix
+    npx prettier --write "src/**/*.{ts,tsx,css}"
+
+# Format code
+format:
+    npx prettier --write "src/**/*.{ts,tsx,css}"
+
+# Check formatting
+format-check:
+    npx prettier --check "src/**/*.{ts,tsx,css}"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Build & Deploy
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Build for production
+build:
+    npm run build
+
+# Preview production build
+preview:
+    npm run preview
+
+# Analyze bundle size
+analyze:
+    npm run build -- --mode analyze
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Utilities
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Install dependencies
+install:
+    npm install
+
+# Update dependencies
+update:
+    npm update
+
+# Clean build artifacts
+clean:
+    rm -rf dist node_modules/.cache coverage
+
+# Add a new ShadCN component
+shadcn COMPONENT:
+    npx shadcn@latest add {{COMPONENT}}
