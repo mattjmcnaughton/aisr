@@ -1,0 +1,65 @@
+repos:
+  # Whitespace checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  # Python: ruff (lint + format)
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff
+        entry: bash -c 'cd backend && ruff check --fix'
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: ruff-format
+        name: ruff-format
+        entry: bash -c 'cd backend && ruff format'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+  # Python: ty (typecheck)
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty (Python typecheck)
+        entry: bash -c 'cd backend && ty check'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+  # TypeScript/JavaScript: ESLint
+  - repo: local
+    hooks:
+      - id: eslint
+        name: ESLint
+        entry: bash -c 'cd frontend && npx eslint --fix'
+        language: system
+        types_or: [javascript, jsx, ts, tsx]
+        pass_filenames: false
+
+  # TypeScript/JavaScript: Prettier
+  - repo: local
+    hooks:
+      - id: prettier
+        name: Prettier
+        entry: bash -c 'cd frontend && npx prettier --write --ignore-unknown .'
+        language: system
+        types_or: [javascript, jsx, ts, tsx, json, css, markdown, yaml]
+        pass_filenames: false
+
+  # TypeScript: tsc typecheck
+  - repo: local
+    hooks:
+      - id: tsc
+        name: TypeScript typecheck
+        entry: bash -c 'cd frontend && npx tsc --noEmit'
+        language: system
+        types: [ts, tsx]
+        pass_filenames: false
