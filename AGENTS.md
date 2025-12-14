@@ -24,38 +24,73 @@ Code should be self-documenting through clear naming and structure.
 ```python
 from aisr.services.card import CardService
 from aisr.models.card import Card
+from aisr.dtos.card import CardCreate, CardResponse
 from aisr.core.config import settings
 ```
 
 ## Backend Architecture
+
+### Async-First
+**All I/O operations use async/await:**
+- FastAPI route handlers: `async def`
+- Database operations: `AsyncSession`, `await session.execute()`
+- PydanticAI agents: `await agent.run()`
+- Database URL: `postgresql+asyncpg://...`
 
 ### Service Layer Pattern
 Business logic lives in **Services** that are completely isolated:
 - No database calls
 - No API calls
 - No external system interactions
-- Pure functions where possible
+- Pure functions where possible (sync if no I/O)
+- Async only when doing I/O (API calls, external services)
 - All dependencies injected
 
 ```python
+# Service with pure logic - can be sync
 class CardService:
     def calculate_next_review(self, card: Card, quality: int) -> Card:
         new_interval = self._compute_interval(card.interval, card.ease, quality)
         return card.model_copy(update={"interval": new_interval})
+
+# Service with I/O - must be async
+class CardGenerationService:
+    async def generate_from_content(self, content: str, agent: Agent) -> list[Card]:
+        result = await agent.run(content)
+        return self._parse_cards(result.output)
 ```
 
 ### Repository Pattern
-**Repositories** handle all persistence:
-- Database queries
+**Repositories** handle all persistence (always async):
+- Database queries with `await`
 - Transactions
 - Data mapping
 
+```python
+class CardRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def get_by_id(self, card_id: int) -> Card | None:
+        return await self.session.get(Card, card_id)
+
+    async def create(self, card: Card) -> Card:
+        self.session.add(card)
+        await self.session.commit()
+        await self.session.refresh(card)
+        return card
+```
+
 ### Layer Responsibilities
 ```
-API Routes → Services → Repositories → Database
-     ↓           ↓
-  Schemas     Models
+API Routes (async) → Services (sync/async) → Repositories (async) → Database
+     ↓                      ↓
+   DTOs                 Models
 ```
+
+**DTOs (Data Transfer Objects)** define the shape of data transferred between layers:
+- **Request DTOs**: Validate incoming API request bodies
+- **Response DTOs**: Structure outgoing API responses
 
 ### Structured Logging
 Use structlog with snake_case event names:
@@ -134,7 +169,7 @@ backend/
 │       ├── main.py
 │       ├── api/v1/routes/
 │       ├── models/
-│       ├── schemas/
+│       ├── dtos/
 │       ├── services/
 │       ├── repositories/
 │       ├── agents/

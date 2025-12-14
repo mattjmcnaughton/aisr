@@ -37,7 +37,7 @@ test-backend *ARGS:
     cd backend && just test {{ARGS}}
 
 # Run frontend tests
-frontend-test *ARGS:
+test-frontend *ARGS:
     cd frontend && just test {{ARGS}}
 
 # Run e2e tests (requires dev servers running)

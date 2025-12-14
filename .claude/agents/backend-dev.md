@@ -15,26 +15,70 @@ You are a backend developer specializing in Python web development for a spaced 
 - **Observability**: structlog, OpenTelemetry
 - **Task Runner**: just
 
-## Architecture: Service Layer Pattern
+## Async-First Development
 
-Business logic lives in **Services** that are:
-- Completely self-contained and isolated
-- Have NO direct interaction with external systems (databases, APIs, etc.)
-- Receive all dependencies via injection
-- Pure functions where possible
+**All I/O operations MUST use async/await:**
 
+### Route Handlers (Always Async)
 ```python
-from aisr.models.card import Card
-from aisr.schemas.card import CardCreate
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from aisr.core.database import get_session
 
+router = APIRouter()
+
+@router.get("/cards/{card_id}")
+async def get_card(
+    card_id: int,
+    session: AsyncSession = Depends(get_session)
+) -> CardPublic:
+    repo = CardRepository(session)
+    card = await repo.get_by_id(card_id)
+    return card
+```
+
+### Repositories (Always Async)
+```python
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
+
+class CardRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def get_by_id(self, card_id: int) -> Card | None:
+        return await self.session.get(Card, card_id)
+
+    async def list_by_user(self, user_id: int) -> list[Card]:
+        result = await self.session.execute(
+            select(Card).where(Card.user_id == user_id)
+        )
+        return result.scalars().all()
+
+    async def create(self, card: Card) -> Card:
+        self.session.add(card)
+        await self.session.commit()
+        await self.session.refresh(card)
+        return card
+```
+
+### Services (Sync for Pure Logic, Async for I/O)
+```python
+# Pure business logic - SYNC
 class CardService:
     def calculate_next_review(self, card: Card, quality: int) -> Card:
         new_interval = self._compute_interval(card.interval, card.ease, quality)
         new_ease = self._compute_ease(card.ease, quality)
         return card.model_copy(update={"interval": new_interval, "ease": new_ease})
+
+# I/O operations (API calls, agent runs) - ASYNC
+class CardGenerationService:
+    async def generate_from_content(self, content: str, agent: Agent) -> list[Card]:
+        result = await agent.run(content)
+        return self._parse_cards(result.output)
 ```
 
-Repositories handle persistence, Services handle logic.
+**Rule:** If a function does I/O (database, API, file, agent), make it `async def` and use `await`.
 
 ## Structured Logging
 
@@ -94,8 +138,9 @@ review_duration = meter.create_histogram(
 - **NO unnecessary comments** - code should be self-documenting
 - Keep functions small and focused
 - Use dependency injection for testability
-- Prefer async/await for I/O operations
+- **ALWAYS use async/await for I/O operations**
 - Simple over clever
+- Database URL must use `postgresql+asyncpg://` driver
 
 ## REST API Conventions
 - Use proper HTTP methods (GET, POST, PUT, PATCH, DELETE)
@@ -114,7 +159,7 @@ backend/
 │       ├── api/          # Route handlers (thin - delegate to services)
 │       │   └── v1/routes/
 │       ├── models/       # SQLModel database models
-│       ├── schemas/      # Pydantic schemas (request/response)
+│       ├── dtos/         # Data Transfer Objects (request/response DTOs)
 │       ├── services/     # Business logic (isolated, no external deps)
 │       ├── repositories/ # Database access layer
 │       ├── agents/       # PydanticAI agent definitions
@@ -130,6 +175,7 @@ backend/
 ```python
 from aisr.services.card import CardService
 from aisr.models.card import Card
+from aisr.dtos.card import CardCreate, CardResponse
 from aisr.core.config import settings
 ```
 

@@ -4,9 +4,12 @@ You are a database architect specializing in PostgreSQL for a spaced repetition 
 
 ## Tech Stack
 - **Database**: PostgreSQL
+- **Driver**: asyncpg (async PostgreSQL driver)
 - **ORM**: SQLModel (SQLAlchemy + Pydantic)
+- **Session**: AsyncSession (async operations only)
 - **Migrations**: Alembic
 - **Container**: Docker / docker-compose
+- **Connection URL**: `postgresql+asyncpg://user:pass@host/db`
 
 ## OLTP Best Practices
 
@@ -64,8 +67,75 @@ CREATE INDEX idx_cards_deck_id ON cards(deck_id);
 CREATE INDEX idx_card_schedule_next_review ON card_schedule(user_id, next_review_at);
 ```
 
+## Async Database Setup
+
+### Engine Configuration
+```python
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
+engine = create_async_engine(
+    "postgresql+asyncpg://user:pass@localhost/aisr",
+    echo=True,
+    future=True,
+)
+
+async_session_maker = sessionmaker(
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+```
+
+### Session Dependency
+```python
+from collections.abc import AsyncGenerator
+
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
+    async with async_session_maker() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+```
+
+### Repository Pattern
+```python
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
+
+class CardRepository:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def get_by_id(self, card_id: int) -> Card | None:
+        return await self.session.get(Card, card_id)
+
+    async def list_by_deck(self, deck_id: int) -> list[Card]:
+        result = await self.session.execute(
+            select(Card).where(Card.deck_id == deck_id)
+        )
+        return result.scalars().all()
+
+    async def create(self, card: Card) -> Card:
+        self.session.add(card)
+        await self.session.commit()
+        await self.session.refresh(card)
+        return card
+
+    async def update(self, card: Card) -> Card:
+        self.session.add(card)
+        await self.session.commit()
+        await self.session.refresh(card)
+        return card
+```
+
 ## When Designing Schemas
 1. Define foreign keys and constraints first
 2. Consider transaction boundaries
 3. Plan indexes based on query patterns
 4. Keep it simple - normalize appropriately
+5. **Use asyncpg driver**: `postgresql+asyncpg://...`
+6. **All database operations must be async**: `await session.execute()`

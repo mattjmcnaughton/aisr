@@ -1,0 +1,47 @@
+# E2E Tests - Playwright
+# Run `just` to see all available commands
+
+# List available commands
+default:
+    @just --list
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Testing
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Run all E2E tests
+test *ARGS:
+    npx playwright test {{ARGS}}
+
+# Run tests in UI mode
+test-ui:
+    npx playwright test --ui
+
+# Run tests in headed mode
+test-headed:
+    npx playwright test --headed
+
+# Run tests in debug mode
+test-debug:
+    npx playwright test --debug
+
+# Show test report
+report:
+    npx playwright show-report
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Utilities
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Install dependencies
+install:
+    npm install
+
+# Install Playwright browsers
+install-browsers:
+    npx playwright install
+
+# Update Playwright
+update:
+    npm update @playwright/test
+    npx playwright install

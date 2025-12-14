@@ -13,11 +13,11 @@ default:
 
 # Start development server with hot reload
 dev:
-    uv run fastapi dev app/main.py --port 8000
+    uv run uvicorn aisr.main:app --reload --host 0.0.0.0 --port 8000
 
 # Start production server
 serve:
-    uv run fastapi run app/main.py --port 8000
+    uv run uvicorn aisr.main:app --host 0.0.0.0 --port 8000
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Testing
@@ -37,7 +37,7 @@ test-integration *ARGS:
 
 # Run tests with coverage
 test-cov:
-    uv run pytest --cov=app --cov-report=term-missing
+    uv run pytest --cov=src/aisr --cov-report=term-missing --cov-report=html
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Code Quality
@@ -45,17 +45,18 @@ test-cov:
 
 # Run all linters and type checkers
 lint:
-    uv run ruff check .
-    uv run ty check
+    uv run ruff check src tests
+    uv run ruff format --check src tests
+    uv run ty check src
 
 # Fix auto-fixable linting issues
 fix:
-    uv run ruff check --fix .
-    uv run ruff format .
+    uv run ruff check --fix src tests
+    uv run ruff format src tests
 
 # Format code
 format:
-    uv run ruff format .
+    uv run ruff format src tests
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Database
@@ -113,4 +114,4 @@ clean:
 
 # Open Python shell with app context
 shell:
-    uv run python -i -c "from app.core.config import settings; print('Settings loaded')"
+    uv run python -i -c "from aisr.core.config import settings; print('Settings loaded')"
