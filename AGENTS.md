@@ -187,6 +187,7 @@ docs/
 | `docs-generator` | Generate/refresh documentation |
 | `scaffolder` | Project structure, dependencies |
 | `docker-engineer` | Dockerfiles, docker-compose |
+| `task-orchestrator` | Parallel task execution via worktrees |
 
 ## Slash Commands
 
@@ -200,6 +201,7 @@ docs/
 | `/review [files]` | Code review |
 | `/new-feature <desc>` | Plan a new feature |
 | `/generate-cards <content>` | AI-generate flashcards |
+| `/parallel <tasks...>` | Execute tasks in parallel worktrees |
 
 ## Just Commands
 
