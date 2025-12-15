@@ -79,7 +79,7 @@ analyze:
 
 # Install dependencies
 install:
-    npm install
+    npm install --ignore-scripts
 
 # Update dependencies
 update:
